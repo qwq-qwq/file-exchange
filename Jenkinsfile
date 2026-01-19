@@ -47,6 +47,23 @@ pipeline {
             }
         }
 
+        stage('Configure Admin') {
+            steps {
+                dir("${env.APP_DIR}") {
+                    // Ждём запуска контейнера
+                    sh 'sleep 10'
+
+                    // Обновляем пароль администратора
+                    sh """
+                        docker exec file-exchange filebrowser users update admin \
+                            --username ${FILEBROWSER_ADMIN_USERNAME} \
+                            --password ${FILEBROWSER_ADMIN_PASSWORD} \
+                            --perm.admin || echo "Admin user configuration skipped"
+                    """
+                }
+            }
+        }
+
         stage('Verify') {
             steps {
                 dir("${env.APP_DIR}") {
@@ -68,9 +85,9 @@ pipeline {
             echo "FileBrowser успешно развёрнут!"
             echo "Информация для доступа:"
             echo "URL: https://files.perek.rest"
-            echo "Логин по умолчанию: admin"
-            echo "Пароль по умолчанию: admin"
-            echo "ВАЖНО: Смените пароль после первого входа!"
+            echo "Логин администратора: ${FILEBROWSER_ADMIN_USERNAME}"
+            echo "Пароль администратора настроен из credentials"
+            echo "ВАЖНО: Для безопасности смените пароль после первого входа!"
         }
 
         failure {

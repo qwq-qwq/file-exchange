@@ -47,22 +47,27 @@ pipeline {
             }
         }
 
-        stage('Configure Admin') {
+        stage('Get Admin Password') {
             steps {
                 dir("${env.APP_DIR}") {
                     // Ждём запуска контейнера
-                    sh 'sleep 10'
+                    sh 'sleep 5'
 
-                    // Обновляем пароль администратора
-                    sh """
-                        docker exec file-exchange filebrowser \
-                            --database /database.db \
-                            --config /config/settings.json \
-                            users update admin \
-                            --username ${FILEBROWSER_ADMIN_USERNAME} \
-                            --password ${FILEBROWSER_ADMIN_PASSWORD} \
-                            --perm.admin || echo "Admin user configuration skipped"
-                    """
+                    // Получаем случайный пароль из логов
+                    script {
+                        def randomPassword = sh(
+                            script: "docker logs file-exchange 2>&1 | grep 'randomly generated password' | tail -1 | awk '{print \$NF}'",
+                            returnStdout: true
+                        ).trim()
+
+                        if (randomPassword) {
+                            echo "ВАЖНО! Случайный пароль администратора: ${randomPassword}"
+                            echo "Сохраните этот пароль для первого входа!"
+                            env.ADMIN_RANDOM_PASSWORD = randomPassword
+                        } else {
+                            echo "Пароль не найден в логах. Возможно база данных уже существует."
+                        }
+                    }
                 }
             }
         }
@@ -86,11 +91,19 @@ pipeline {
     post {
         success {
             echo "FileBrowser успешно развёрнут!"
+            echo "==========================================="
             echo "Информация для доступа:"
             echo "URL: https://files.perek.rest"
-            echo "Логин администратора: ${FILEBROWSER_ADMIN_USERNAME}"
-            echo "Пароль администратора настроен из credentials"
-            echo "ВАЖНО: Для безопасности смените пароль после первого входа!"
+            echo "Логин: admin"
+
+            if (env.ADMIN_RANDOM_PASSWORD) {
+                echo "Пароль (при первом запуске): ${env.ADMIN_RANDOM_PASSWORD}"
+                echo ""
+                echo "После первого входа ОБЯЗАТЕЛЬНО смените пароль через веб-интерфейс!"
+            } else {
+                echo "База данных уже существует. Используйте ранее установленный пароль."
+            }
+            echo "==========================================="
         }
 
         failure {

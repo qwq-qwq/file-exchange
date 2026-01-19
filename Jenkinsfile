@@ -55,7 +55,10 @@ pipeline {
 
                     // Обновляем пароль администратора
                     sh """
-                        docker exec file-exchange filebrowser users update admin \
+                        docker exec file-exchange filebrowser \
+                            --database /database.db \
+                            --config /config/settings.json \
+                            users update admin \
                             --username ${FILEBROWSER_ADMIN_USERNAME} \
                             --password ${FILEBROWSER_ADMIN_PASSWORD} \
                             --perm.admin || echo "Admin user configuration skipped"

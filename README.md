@@ -47,9 +47,23 @@ docker-compose logs -f
 ### Деплой через Jenkins
 
 ```bash
-# Проект уже добавлен в jenkins-installer/config/jenkins/casc/jobs.groovy
+# 1. Настройте credentials в jenkins-installer/.env
+FILEBROWSER_ADMIN_USERNAME=admin
+FILEBROWSER_ADMIN_PASSWORD=your_secure_password_here
+
+# 2. Перезапустите Jenkins для применения credentials
+cd /path/to/jenkins-installer
+docker-compose restart jenkins
+
+# 3. Проект уже добавлен в jenkins-installer/config/jenkins/casc/jobs.groovy
 # Просто запустите job 'file-exchange' в Jenkins UI
 ```
+
+**Важно:** Credentials для FileBrowser автоматически настраиваются из переменных окружения Jenkins:
+- `FILEBROWSER_ADMIN_USERNAME` - имя администратора (по умолчанию: admin)
+- `FILEBROWSER_ADMIN_PASSWORD` - пароль администратора
+
+Эти credentials автоматически применяются при деплое через Jenkins pipeline.
 
 ## Первый вход
 

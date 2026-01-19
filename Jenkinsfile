@@ -24,8 +24,8 @@ pipeline {
                     sh "cp config/settings.json ${env.APP_DIR}/config/settings.json || true"
                     sh "cp docker-compose.yml ${env.APP_DIR}/docker-compose.yml || true"
 
-                    // Создаём базу данных если её нет
-                    sh "touch ${env.APP_DIR}/config/filebrowser.db || true"
+                    // Даём права на запись в директории для FileBrowser контейнера
+                    sh "chmod -R 777 ${env.APP_DIR}/config ${env.APP_DIR}/data"
                 }
             }
         }

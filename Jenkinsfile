@@ -30,6 +30,48 @@ pipeline {
             }
         }
 
+        stage('Initialize Database') {
+            steps {
+                dir("${env.APP_DIR}") {
+                    script {
+                        // Проверяем существует ли база данных
+                        def dbExists = sh(
+                            script: "test -f ${env.APP_DIR}/config/filebrowser.db && echo 'exists' || echo 'not_exists'",
+                            returnStdout: true
+                        ).trim()
+
+                        if (dbExists == 'not_exists') {
+                            echo "База данных не существует. Инициализируем с заданными credentials..."
+
+                            // Запускаем временный контейнер для инициализации базы
+                            sh """
+                                docker run --rm \
+                                    -v ${env.APP_DIR}/config:/config \
+                                    -v ${env.APP_DIR}/data:/srv \
+                                    filebrowser/filebrowser:latest \
+                                    config init --database /config/filebrowser.db --config /config/settings.json
+                            """
+
+                            // Создаём пользователя admin с заданными credentials
+                            sh """
+                                docker run --rm \
+                                    -v ${env.APP_DIR}/config:/config \
+                                    -v ${env.APP_DIR}/data:/srv \
+                                    filebrowser/filebrowser:latest \
+                                    users add ${FILEBROWSER_ADMIN_USERNAME} ${FILEBROWSER_ADMIN_PASSWORD} \
+                                    --database /config/filebrowser.db \
+                                    --perm.admin
+                            """
+
+                            echo "База данных инициализирована с пользователем: ${FILEBROWSER_ADMIN_USERNAME}"
+                        } else {
+                            echo "База данных уже существует. Пропускаем инициализацию."
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Deploy') {
             steps {
                 dir("${env.APP_DIR}") {
@@ -43,31 +85,6 @@ pipeline {
                     // Деплоим через Docker Compose
                     sh 'docker-compose down || true'
                     sh 'docker-compose up -d'
-                }
-            }
-        }
-
-        stage('Get Admin Password') {
-            steps {
-                dir("${env.APP_DIR}") {
-                    // Ждём запуска контейнера
-                    sh 'sleep 5'
-
-                    // Получаем случайный пароль из логов
-                    script {
-                        def randomPassword = sh(
-                            script: "docker logs file-exchange 2>&1 | grep 'randomly generated password' | tail -1 | awk '{print \$NF}'",
-                            returnStdout: true
-                        ).trim()
-
-                        if (randomPassword) {
-                            echo "ВАЖНО! Случайный пароль администратора: ${randomPassword}"
-                            echo "Сохраните этот пароль для первого входа!"
-                            env.ADMIN_RANDOM_PASSWORD = randomPassword
-                        } else {
-                            echo "Пароль не найден в логах. Возможно база данных уже существует."
-                        }
-                    }
                 }
             }
         }
@@ -90,19 +107,15 @@ pipeline {
 
     post {
         success {
+            echo "==========================================="
             echo "FileBrowser успешно развёрнут!"
             echo "==========================================="
             echo "Информация для доступа:"
-            echo "URL: https://files.perek.rest"
-            echo "Логин: admin"
-
-            if (env.ADMIN_RANDOM_PASSWORD) {
-                echo "Пароль (при первом запуске): ${env.ADMIN_RANDOM_PASSWORD}"
-                echo ""
-                echo "После первого входа ОБЯЗАТЕЛЬНО смените пароль через веб-интерфейс!"
-            } else {
-                echo "База данных уже существует. Используйте ранее установленный пароль."
-            }
+            echo "  URL: https://files.perek.rest"
+            echo "  Логин: ${FILEBROWSER_ADMIN_USERNAME}"
+            echo "  Пароль: настроен из Jenkins credentials"
+            echo ""
+            echo "Credentials настроены в jenkins-installer/.env"
             echo "==========================================="
         }
 

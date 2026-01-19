@@ -1,0 +1,27 @@
+# FileBrowser database
+config/filebrowser.db
+
+# User data files
+data/*
+!data/.gitkeep
+
+# Logs
+*.log
+
+# Backups
+*.tar.gz
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment variables
+.env
+.env.local

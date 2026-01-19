@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    container_name: file-exchange
+    restart: always
+    environment:
+      - TZ=UTC
+    volumes:
+      - ./data:/srv
+      - ./config/filebrowser.db:/database.db
+      - ./config/settings.json:/config/settings.json
+    command: --config /config/settings.json
+    networks:
+      - traefik_web-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.filebrowser.rule=Host(`files.perek.rest`)"
+      - "traefik.http.routers.filebrowser.entrypoints=websecure"
+      - "traefik.http.routers.filebrowser.tls=true"
+      - "traefik.http.routers.filebrowser.tls.certresolver=myresolver"
+      - "traefik.http.services.filebrowser.loadbalancer.server.port=80"
+
+networks:
+  traefik_web-network:
+    external: true

@@ -16,7 +16,7 @@ services:
       - traefik_web-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.filebrowser.rule=Host(`files.perek.rest`)"
+      - "traefik.http.routers.filebrowser.rule=Host(`files.perek.rest`) || Host(`krasno.bond`)"
       - "traefik.http.routers.filebrowser.entrypoints=websecure"
       - "traefik.http.routers.filebrowser.tls=true"
       - "traefik.http.routers.filebrowser.tls.certresolver=myresolver"

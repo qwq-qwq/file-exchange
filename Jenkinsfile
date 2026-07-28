@@ -82,9 +82,15 @@ pipeline {
                         fi
                     '''
 
+                    // Скачиваем свежий образ (пока старый контейнер ещё работает)
+                    sh 'docker-compose pull'
+
                     // Деплоим через Docker Compose
                     sh 'docker-compose down || true'
                     sh 'docker-compose up -d'
+
+                    // Удаляем старые неиспользуемые образы
+                    sh 'docker image prune -f || true'
                 }
             }
         }
